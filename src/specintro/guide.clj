@@ -13,10 +13,12 @@
 ;;; s/conform is used to conform to a spec if valid  else return error info
 ;;; s/valid is used to test if a form matches a spec
 
-;;; specs with predicates
+;;; specs with predicates: returns the value if it conforms to
+;;; a spec and a special keyword :clojure.spec/invalid if it doesn't
 (s/conform even? 1000)
+(s/conform even? 999)
 
-;; test predicates
+;; test predicates: the returned value is a boolean
 (s/valid? #(> % 5) 10)
 (s/valid? #(> % 5) 0)
 
@@ -45,10 +47,15 @@
 (s/valid? ::name-or-id 100)
 (s/valid? ::name-or-id :foo)
 
-;; s/explain is used to report why a value does not conform to a spec
-;; explain and explain-str
+;; s/explain is used to report why a value does not conform to a spec:
+;; explain prints the reason to the console, returns nil
+;; explain-str returns the explanation as a string
+;; Return/print a string "Success!" if the value conforms to the spec
 (s/explain ::suit 42)
+(s/explain-str ::suit 42)
 (s/explain-str ::name-or-id :foo)
+(s/explain ::suit :club)
+(s/explain-str ::suit :club)
 
 ;; map specs
 (def email-regex #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$")
