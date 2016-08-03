@@ -50,12 +50,17 @@
 ;; s/explain is used to report why a value does not conform to a spec:
 ;; explain prints the reason to the console, returns nil
 ;; explain-str returns the explanation as a string
-;; Return/print a string "Success!" if the value conforms to the spec
+;; explain-data retruns the result as a hashmap
+;; If the value conforms to the spec, explain and explain-str return/print a string "Success!"
+;; explain-data returns nil
 (s/explain ::suit 42)
 (s/explain-str ::suit 42)
+(s/explain-data ::suit 42)
 (s/explain-str ::name-or-id :foo)
+(s/explain-data ::name-or-id :foo)
 (s/explain ::suit :club)
 (s/explain-str ::suit :club)
+(s/explain-data ::suit :club)
 
 ;; map specs
 (def email-regex #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$")
@@ -67,12 +72,29 @@
 (s/def ::person (s/keys :req [::first-name ::last-name ::email]
                         :opt [::phone]))
 
-;; validate namespaced key-maps
+;; validate namespaced key-maps: keys come with a validation
+;; function
 (s/valid? ::person
           {::first-name "Elon"
            ::last-name "Musk"
            ::email "elon@example.com"})
+
+(::first-name
+          {::first-name "Elon"
+           ::last-name "Musk"
+           ::email "elon@example.com"})
+
 (s/valid? ::person
+          {::first-name "Elon"
+           ::last-name "Musk"
+           ::email "elon"})
+
+(s/explain-str ::person
+          {::first-name "Elon"
+           ::last-name "Musk"
+           ::email "elon"})
+
+(s/explain-data ::person
           {::first-name "Elon"
            ::last-name "Musk"
            ::email "elon"})
@@ -109,19 +131,39 @@
 ;; homogenous collections
 (s/conform (s/coll-of keyword?) [:a :b :c])
 (s/conform (s/coll-of number?) [1 2 3])
+(s/conform (s/coll-of number?) {1 2 3 4}); elements of a map are k-v pairs
 (s/conform (s/coll-of number? :distinct true) [1 2 3])
+(s/conform (s/coll-of keyword? :kind vector? :max-count 3) [:a :b])
+
+;; use s/map-of for maps
 (s/conform (s/map-of keyword? string?) {:a "A" :b "B"})
+
 
 ;; specs for tuples
 (s/def ::point (s/tuple double? double? double?))
 (s/conform ::point [1.5 2.5 -0.5])
+(s/def ::odd-even (s/tuple odd? even? odd? even?))
+(s/conform ::odd-even [1 2 3 4])
+(s/conform ::odd-even [0 1 2 3])
 
 ;;; specs for sequences
 ;; sequences using cat and wildcards
+;; s/cat must have names for elements, returns a conformed result as a map
+;; This is important for combining predicates
 (s/def ::ingredient (s/cat :quantity number? :unit keyword?))
 (s/conform ::ingredient [2 :teaspoon])
+
+;; sequences may be matched to "regular expressions"
+;; s/* - 0 or more occurences,
+;; s/+ - 1 or more occurrences
+;; s/? - 0 or 1 occurrences
+;; 0 or more occurrences of a keyword
 (s/def ::seq-of-keywords (s/* keyword?))
 (s/conform ::seq-of-keywords [:a :b :c])
+(s/conform ::seq-of-keywords [])
+(s/conform (s/+ keyword?) [])
+
+;; combining regular expressions:
 (s/def ::odds-then-maybe-even (s/cat :odds (s/+ odd?)
                                      :even (s/? even?)))
 (s/conform ::odds-then-maybe-even [1 3 5 100])
