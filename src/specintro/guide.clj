@@ -1,5 +1,6 @@
 (ns specintro.guide
-  "examples from clojure spec guide at http://clojure.org/guides/spec"
+  "examples from clojure spec guide at http://clojure.org/guides/spec
+   and additional examples"
   (:require [clojure.spec :as s]
             [clojure.spec.gen :as gen]
             [clojure.spec.test :as stest])
@@ -157,7 +158,7 @@
 (s/conform ::ingredient [2 :teaspoon])
 
 ;; sequences may be matched to "regular expressions"
-;; s/* - 0 or more occurences,
+;; s/* - 0 or more occurrences,
 ;; s/+ - 1 or more occurrences
 ;; s/? - 0 or 1 occurrences
 ;; 0 or more occurrences of a keyword
@@ -204,18 +205,61 @@
 (s/conform ::nested [:names ["a" "b"] :nums [1 2 3]])
 
 
-
 ;; function specs
 (defn ranged-rand
   [start end]
   (+ start (long (rand (- end start)))))
 
+;; the matched values accumulate into a hashmap.
+;; :args is the conformed value of the :args spec,
+;; :ret is a conformed value of the return.
+;; They spec in :fn is applied to the accumulated hashmap
 (s/fdef ranged-rand
         :args (s/and (s/cat :start int? :end int?)
                      #(< (:start %) (:end %)))
         :ret int?
         :fn (s/and #(>= (:ret %) (-> % :args :start))
                    #(< (:ret %) (-> % :args :end))))
+
+;; Instrumentation checks arguments:
+
+;; instrumentation during development:
+(stest/instrument `ranged-rand)
+;; If a spec fails, it throws a clojure.lang.ExceptionInfo exception.
+;; The exception has data attached to it explaining what failed.
+;; Examples:
+;; (ranged-rand :hi :bye) ;; wrong type of arguments (fails on the first one)
+;; (ranged-rand 5 10 0) ;; fails spec with "Extra input"
+;; (ranged-rand 5) ;; fails spec with "Insufficient input"
+;; (ranged-rand 8 5) ;; fails the condition on the arguments
+;; (ranged-rand :hi 5 4) ;; Careful: fails the int? predicate, not the number of arguments!!!
+
+;; Testing checks return values with randomly generated parameters:
+
+(stest/check `ranged-rand)
+
+;; to stop instrumentation:
+(stest/unstrument `ranged-rand)
+
+;; Some useful predicates/tricks:
+
+;; using any? as a wildcard in sequences predicates,
+;; using s/nilable to specify that a parameter can be nil
+;; (otherwise can't pass nil as a vector):
+(defn add-front
+  [x v]
+  (into [x] v))
+
+(s/fdef add-front
+        :args (s/cat :elem any? :vec (s/nilable vector?))
+        :ret (s/and vector? #(> (count %) 0))
+        :fn #(= (first (:ret %)) (:elem (:args %))))
+
+(stest/instrument `add-front)
+
+;(add-front 5 '(1 2 3)) ; throws an exception
+(add-front 5 nil)
+
 
 ;; ---------------
 ;; Using Specs
@@ -230,11 +274,6 @@
 ;; (person-name 42) ;; fails spec will not compile file
 (person-name {:first-name "elon", :last-name "musk", :email "elon@musk.com"})
 (person-name (->Person "elon" "musk" "elon@musk.com" nil))
-
-;; instrumentation during development
-(stest/instrument `ranged-rand)
-;;(ranged-rand 8 5) ;; throws an exception
-(stest/unstrument `ranged-rand)
 
 ;; using specs to destructure inputs
 (defn- set-config [prop val]
