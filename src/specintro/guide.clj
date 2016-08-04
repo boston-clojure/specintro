@@ -148,6 +148,9 @@
 
 ;;; specs for sequences
 ;; sequences using cat and wildcards
+;; The conformed sequence is returned as a collection of matches;
+;; its format depends on the operators used.
+
 ;; s/cat must have names for elements, returns a conformed result as a map
 ;; This is important for combining predicates
 (s/def ::ingredient (s/cat :quantity number? :unit keyword?))
@@ -170,6 +173,31 @@
 (s/def ::opts (s/* (s/cat :opt keyword? :val boolean?)))
 (s/conform ::opts [:silent? false :verbose true])
 
+;; s/and passes the conformed value to the next predicate
+;; In the case of s/cat, the conformed value is the hashmap with
+;; the keys for matched parts of the sequence.
+;; The predicate is then applied to the resulting hashmap.
+(s/def ::combined-spec (s/and (s/cat :vec vector? :keyword keyword)
+                              #(< (count (:vec %)) 3)))
+
+
+(s/conform ::combined-spec [[7 8] :hi])
+(s/explain-str ::combined-spec [8 :hi])
+(s/explain-str ::combined-spec [[7 8 9] :hi])
+
+
+;; This is an equivalent (although less readable) way of writing
+;; the same spec: (second (first %)) in this case is taking the
+;; value of the first key of the hashmap produced by s/cat,
+;; so it's equivalent to (:vec %)
+(s/def ::combined-spec1 (s/and (s/cat :vec vector? :keyword keyword)
+                              #(< (count (second (first %))) 3)))
+
+(s/conform ::combined-spec1 [[7 8] :hi])
+(s/explain-str ::combined-spec1 [8 :hi])
+(s/explain-str ::combined-spec1 [[7 8 9] :hi])
+
+
 ;; sequences with alt and wildcards
 (s/def ::config (s/*
                  (s/cat :prop string?
@@ -179,12 +207,15 @@
 (s/describe ::config)
 
 ;; nested sequences
+;; s/spec is used for nesting
 (s/def ::nested
   (s/cat :names-kw #{:names}
          :names (s/spec (s/* string?))
          :nums-kw #{:nums}
          :nums (s/spec (s/* number?))))
 (s/conform ::nested [:names ["a" "b"] :nums [1 2 3]])
+
+
 
 ;; function specs
 (defn ranged-rand
