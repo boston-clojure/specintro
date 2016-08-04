@@ -177,25 +177,13 @@
 ;; In the case of s/cat, the conformed value is the hashmap with
 ;; the keys for matched parts of the sequence.
 ;; The predicate is then applied to the resulting hashmap.
-(s/def ::combined-spec (s/and (s/cat :vec vector? :keyword keyword)
-                              #(< (count (:vec %)) 3)))
+(s/def ::combined-spec (s/and (s/cat :vec vector? :num number?)
+                              #(< (count (:vec %)) (:num %))))
 
 
-(s/conform ::combined-spec [[7 8] :hi])
-(s/explain-str ::combined-spec [8 :hi])
-(s/explain-str ::combined-spec [[7 8 9] :hi])
-
-
-;; This is an equivalent (although less readable) way of writing
-;; the same spec: (second (first %)) in this case is taking the
-;; value of the first key of the hashmap produced by s/cat,
-;; so it's equivalent to (:vec %)
-(s/def ::combined-spec1 (s/and (s/cat :vec vector? :keyword keyword)
-                              #(< (count (second (first %))) 3)))
-
-(s/conform ::combined-spec1 [[7 8] :hi])
-(s/explain-str ::combined-spec1 [8 :hi])
-(s/explain-str ::combined-spec1 [[7 8 9] :hi])
+(s/conform ::combined-spec [[7 8] 3])
+(s/explain-str ::combined-spec [[] :hi])
+(s/explain-str ::combined-spec [[7 8 9] 2])
 
 
 ;; sequences with alt and wildcards
@@ -245,7 +233,7 @@
 
 ;; instrumentation during development
 (stest/instrument `ranged-rand)
-;; (ranged-rand 8 5) ;; fails spec and file will not compile
+;;(ranged-rand 8 5) ;; throws an exception
 (stest/unstrument `ranged-rand)
 
 ;; using specs to destructure inputs
