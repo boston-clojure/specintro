@@ -346,3 +346,15 @@
 ;; generative testing with check
 (stest/check `ranged-rand)
 (s/exercise-fn `ranged-rand 10)
+
+;; Advanced topic: s/&
+;; s/& is used when you have a sequence that is matched using a regular expression,
+;; but you also would like to impose additional constraints on the result.
+;; For instance, you want a sequence of ints, but you also require
+;; that the sequence has the same number of odd and even numbers.
+;; s/& takes the result of
+(s/def ::same-evens-odds (s/& (s/* int?) #(= (count (filter odd? %)) (count (filter even? %)))))
+
+(s/conform ::same-evens-odds [2 3])
+(s/explain-str ::same-evens-odds [2 :hi 3])
+(s/explain-str ::same-evens-odds [2 3 4])
