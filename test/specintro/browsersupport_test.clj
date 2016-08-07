@@ -9,5 +9,5 @@
 ;;; use specs for generative testing
 (def spec-passed? (comp :result :clojure.spec.test.check/ret first stest/check))
 
-#_(deftest browser-support-level-test
+(deftest browser-support-level-test
   (is (true? (spec-passed? `browser-support-level))))

@@ -67,23 +67,49 @@
 ;; use a custom generator for configuration map keys
 ;; need to define a dependent type such that key = f(value)
 ;; using generator combinators from s/gen and s/gen wrappers to test.check
+(defn- conf-key
+  "returns key used for full configuration map given a config entry"
+  [conf]
+  (let [{:keys [:browser-name :os-name]} conf]
+    (keyword (str browser-name "-" os-name))))
+
 (s/def ::map-of-browser-config
   (s/with-gen
     (s/map-of keyword? :unq/browser-config)
     #(gen/fmap (fn [conf-vec]
                  (into {}
                        (for [conf conf-vec]
-                         (let [{:keys [:browser-name :os-name]} conf
-                               config-key (keyword (str browser-name "-" os-name))]
-                           {config-key conf}))))
+                         [(conf-key conf) conf])))
                (gen/vector (s/gen :unq/browser-config)))))
 
 ;; function spec
+(defn- has-config-entry?
+  [conf-map conf]
+  (contains? conf-map (conf-key conf)))
+
 (s/fdef browser-support-level
         :args (s/cat :conf ::map-of-browser-config
                      :user-agent :unq/browser-user-agent)
         :ret ::support-level
-        :fn (constantly true))
+        :fn (s/and
+             ;; untested browsers return :unsupported
+             #(let [browser-os {:os-name (-> % :args :user-agent :os :os-name)
+                                :browser-name (-> % :args :user-agent :browser :browser-name)}]
+                (if (not (has-config-entry? (-> % :args :conf) browser-os))
+                  (= (:ret %) :unsupported)
+                  true))
+             ;; tested browsers return :fullysupported if browser version > conf fully-supported-version
+             ;; will fail test!
+             #_(let [browser-os {:os-name (-> % :args :user-agent :os :os-name)
+                                :browser-name (-> % :args :user-agent :browser :browser-name)}
+                    br-version (-> % :args :user-agent :browser :browser-version)
+                    conf-entry (-> % :args :conf (get (conf-key browser-os)))
+                    full-version (:minimum-fully-supported-version conf-entry)]
+                (if (and
+                     (has-config-entry? (-> % :args :conf) browser-os)
+                     (>= br-version full-version))
+                  (= (:ret %) :fullysupported)
+                  true))))
 
 ;;; -----
 ;;; REPL
@@ -107,3 +133,10 @@
   ;; :fail for failing input dataset
   ;; :smallest for smallest failing dataset
 )
+
+
+
+
+
+
+
