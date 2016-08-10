@@ -166,13 +166,16 @@
 (s/conform ::seq-of-keywords [:a :b :c])
 (s/conform ::seq-of-keywords [])
 (s/conform (s/+ keyword?) [])
+(s/conform (s/? keyword?) [:hi])
+(s/conform (s/? keyword?) [])
+(s/conform (s/? keyword?) [:hi :bye])
 
 ;; combining regular expressions:
 (s/def ::odds-then-maybe-even (s/cat :odds (s/+ odd?)
                                      :even (s/? even?)))
 (s/conform ::odds-then-maybe-even [1 3 5 100])
 (s/def ::opts (s/* (s/cat :opt keyword? :val boolean?)))
-(s/conform ::opts [:silent? false :verbose true])
+(s/conform ::opts [:silent? false :verbose? true])
 
 ;; s/and passes the conformed value to the next predicate
 ;; In the case of s/cat, the conformed value is the hashmap with
@@ -346,3 +349,17 @@
 ;; generative testing with check
 (stest/check `ranged-rand)
 (s/exercise-fn `ranged-rand 10)
+
+;; Advanced topic: s/&
+;; s/& is used when you have a sequence that is matched using a regular expression,
+;; but you also would like to impose additional constraints on the result.
+;; For instance, you want a sequence of ints, but you also require
+;; that the sequence has the same number of odd and even numbers.
+;; s/& takes a regular expression and predicates and checks that
+;; the value matched by the regular expression also satisfies all
+;; of the predicates.
+(s/def ::same-evens-odds (s/& (s/* int?) #(= (count (filter odd? %)) (count (filter even? %)))))
+
+(s/conform ::same-evens-odds [2 3])
+(s/explain-str ::same-evens-odds [2 :hi 3])
+(s/explain-str ::same-evens-odds [2 3 4])
