@@ -219,6 +219,7 @@
 
 ;; function specs
 (defn ranged-rand
+  "returns a random number between start and end"
   [start end]
   (+ start (long (rand (- end start)))))
 
@@ -372,3 +373,24 @@
 (s/conform ::same-evens-odds [2 3])
 (s/explain-str ::same-evens-odds [2 :hi 3])
 (s/explain-str ::same-evens-odds [2 3 4])
+
+;; Demo of spec uses
+(comment
+  ;; documentation
+  (clojure.repl/doc ranged-rand)
+  
+  ;; destructuring
+  (s/conform ::config ["-server" "foo" "-verbose" true "-user" "joe"])
+
+  ;; instrumentation
+  (stest/instrument `ranged-rand)
+  (ranged-rand 8 5)
+  
+  ;; runtime validation of inputs and ouputs
+  (s/valid? :unq/person
+            (->Person "Elon" "Musk" "elon-example.com" nil))
+  
+  ;; generative testing
+  (s/exercise-fn `ranged-rand 10)
+  (stest/check `ranged-rand)
+  )
