@@ -177,6 +177,11 @@
 (s/def ::opts (s/* (s/cat :opt keyword? :val boolean?)))
 (s/conform ::opts [:silent? false :verbose? true])
 
+;; ----------------
+;; Compound specs
+;; ----------------
+
+
 ;; s/and passes the conformed value to the next predicate
 ;; In the case of s/cat, the conformed value is the hashmap with
 ;; the keys for matched parts of the sequence.
@@ -192,8 +197,9 @@
 
 ;; sequences with alt and wildcards
 (s/def ::config (s/*
-                 (s/cat :prop string?
-                        :val  (s/alt :s string? :b boolean?))))
+                  (s/cat :prop string?
+                         :val  (s/alt :s string? :b boolean?))))
+
 (s/conform ::config ["-server" "foo" "-verbose" true "-user" "joe"])
 ;; spec descriptions
 (s/describe ::config)
@@ -207,6 +213,9 @@
          :nums (s/spec (s/* number?))))
 (s/conform ::nested [:names ["a" "b"] :nums [1 2 3]])
 
+;; ----------------------------------------------
+;; Function specs, instrumentation, and testing
+;; ----------------------------------------------
 
 ;; function specs
 (defn ranged-rand
