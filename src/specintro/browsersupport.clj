@@ -125,6 +125,7 @@
 
   ;; test a named function with generators from specs
   (stest/check `browser-support-level)
+  (stest/summarize-results (stest/check `browser-support-level))
 
   ;; test all functions in namespace
   (-> (stest/enumerate-namespace 'specintro.browsersupport) stest/check)
